@@ -1,8 +1,8 @@
 import styled from "@emotion/styled";
-import { ColumnDef } from "@tanstack/react-table";
 import { Checkbox } from "antd";
-import { Key, useCallback, useEffect, useMemo, useState } from "react";
+import {  useCallback, useEffect, useMemo, useState } from "react";
 import { RowSelectMethod } from "../interface";
+import { getRowKey } from "../utils";
 
 const CheckboxContainer = styled.div({
   padding: "10px",
@@ -24,16 +24,6 @@ const useSelection = ({ rowSelection, columns, rowKey }: any) => {
     return new Set(activeKeys);
   }, []);
 
-  const getRowKey = useMemo(() => {
-    if (typeof rowKey === "function") {
-      return rowKey;
-    }
-    return (record: any) => {
-      const key = record && record[rowKey];
-
-      return key;
-    };
-  }, [rowKey]);
   const setSelectedKeys = useCallback(
     (keys: any[], method: RowSelectMethod) => {
       setActiveKeys([...keys]);
@@ -51,10 +41,10 @@ const useSelection = ({ rowSelection, columns, rowKey }: any) => {
     if (checked) {
       columns.map((record: any, index: any) =>
         keys.add(
-          getRowKey({
+          getRowKey(rowKey, {
             index,
             ...record,
-          })
+          }),
         )
       );
       setSelectedKeys([...Array.from(keys)], "all");
@@ -64,11 +54,7 @@ const useSelection = ({ rowSelection, columns, rowKey }: any) => {
     }
   };
 
-  // const checkDisabled = (record:any)=>{
-
-  // }
-
-  const rowSelectionAccessor = useCallback(() => {
+  const rowSelectionAccessor = useMemo(() => {
     return {
       id: "select",
       header: (info) => {
@@ -85,10 +71,10 @@ const useSelection = ({ rowSelection, columns, rowKey }: any) => {
         );
       },
       cell: ({ row }: any) => {
-        const key = getRowKey({
+        const key = getRowKey(rowKey, {
           index: row?.index,
           ...row?.original,
-        });
+        })
         return (
           <CheckboxContainer>
             <Checkbox

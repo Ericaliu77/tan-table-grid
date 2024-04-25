@@ -42,6 +42,8 @@ export interface ColumnDataType {
   width?: number | undefined;
   render?:any;
   fixed?:"left"|'right'
+  // hidden?: boolean
+  enableResizing?: boolean
 }
 
 export type RowSelectMethod = 'all' | 'none' | 'invert' | 'single' | 'multiple';

@@ -17,7 +17,7 @@ import "./index.css";
 import { throttle } from "lodash";
 import useColumns from "../../hooks/useColumns";
 import useSelection from "../../hooks/useSelection";
-
+import {getRowKey} from '../../utils'
 const defaultColumnSize: ColumnSizeType = {
   size: 150,
   minSize: 50,
@@ -64,14 +64,16 @@ const TableComponent = ({
   });
   const columnHelper = createColumnHelper<any>();
   const cd = useMemo(() => {
-    const values = columns?.map((cItem: any, cIndex: any) => {
+    const values = columns?.map((cItem: ColumnDataType, cIndex: any) => {
       let sx: React.CSSProperties = {
         flex: cItem.width ? "none" : "auto",
         justifyContent: cItem.align || "left",
         position: "relative",
       };
       return columnHelper.accessor(cItem.dataIndex, {
-        size: cItem.width || 150,
+        size: cItem.width || undefined,
+        enableResizing:
+        cItem.width == null ? false : cItem.enableResizing ? cItem.enableResizing : true,
         header: (info) => {
           return (
             <>
@@ -96,7 +98,10 @@ const TableComponent = ({
                 }}
               >
                 {cItem.title}
-                {enableColumnResizing && (
+                {enableColumnResizing && 
+                   cItem.enableResizing != false &&
+                   cItem.width &&
+                   cIndex != columns.length - 1 && (
                   <div
                     style={{ zIndex: 199 }}
                     {...{
@@ -121,7 +126,12 @@ const TableComponent = ({
         cell: (info) => {
           return (
             <TableCellContainer
-              key={info.cell.id}
+            key={
+              getRowKey(rowKey, {
+                index: info.cell.id,
+                ...info.row.original,
+              }) || info.cell.id
+            }
               style={{
                 ...sx,
                 ...(cItem.fixed === "left" && {
@@ -152,7 +162,7 @@ const TableComponent = ({
     });
     if (rowSelection) {
       values?.unshift(
-        rowSelectionAccessor()
+        rowSelectionAccessor
        
       );
     }

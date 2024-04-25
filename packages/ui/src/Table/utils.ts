@@ -45,3 +45,11 @@ export function convertChildrenToDatas(children: React.ReactNode): any {
 export function isTouchStartEvent(e: unknown): e is TouchEvent {
   return (e as TouchEvent).type === "touchstart";
 }
+
+export const getRowKey = (rowKey: string | Function, record: any) => {
+  if (typeof rowKey === 'function') {
+    return rowKey
+  }
+  const key = record && record[rowKey]
+  return key
+}
