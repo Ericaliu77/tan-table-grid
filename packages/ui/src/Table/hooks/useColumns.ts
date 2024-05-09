@@ -1,26 +1,34 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { isTouchStartEvent } from "../utils";
 
-const useColumns = ({ columns, }: any) => {
-  const [gridWidths, setGrids] = useState(
-    columns?.map((cItem: any) => (cItem.width ? cItem.width : null))
+const defaultRowColumn = {
+  title:'select',
+  dataIndex:'select',
+  width:50
+}
+const useColumns = ({ columns,onRowSelection }: any) => {
+  const gridColumns = useRef(onRowSelection?[defaultRowColumn].concat(columns)
+    :columns
   );
 
-  const gridFixedWidths = useRef(new Array(columns.length).fill(null));
+  const [gridWidths, setGrids] = useState(
+    gridColumns.current?.map((cItem: any) => (cItem.width ? cItem.width : null))
+  );
+  const gridFixedWidths = useRef(new Array(gridColumns.current.length).fill(null));
   function handleCalFixed(gridWidths: any) {
     let left = 0;
     let right = 0;
     let values = [];
-
-    for (let i = 0; i < columns.length; i++) {
-      const item = columns[i];
-      const itemR = columns[columns.length - i];
-      if (item.fixed === "left") {
+    const columnLength = gridColumns.current.length
+    for (let i = 0; i < columnLength; i++) {
+      const item = gridColumns.current[i];
+      const itemR = gridColumns.current[columnLength - i];
+      if (item?.fixed === "left") {
         values[i] = left;
         left += gridWidths[i];
-      } else if (itemR.fixed === "right") {
-        values[columns.length - i] = right;
-        right += gridWidths[columns.length - i];
+      } else if (itemR?.fixed === "right") {
+        values[columnLength - i] = right;
+        right += gridWidths[columnLength- i];
       } else {
         // values[i] = null
       }
@@ -32,19 +40,24 @@ const useColumns = ({ columns, }: any) => {
   }, [gridWidths]);
 
   const getColumnOffset = (dataIndex: any) => {
-    const index = columns.findIndex((i) => i.dataIndex === dataIndex);
+    const index = gridColumns.current.findIndex((i) => i.dataIndex === dataIndex);
     const value = gridFixedWidths.current?.[index];
     return value || 0;
   };
 
   const handleCalGridColumns = () => {
-    const width = columns?.map((cItem: any) => {
+    const width = gridColumns.current?.map((cItem: any) => {
       return cItem.width ? cItem.width : null;
     });
+
     setGrids(width);
   };
 
   useEffect(() => {
+    gridColumns.current = columns.concat([])
+    if(onRowSelection){
+      gridColumns.current =[defaultRowColumn].concat(columns)
+    }
     handleCalGridColumns();
   }, [columns]);
 
@@ -120,16 +133,21 @@ const useColumns = ({ columns, }: any) => {
           table.options.columnResizeMode === "onChange" ||
           eventType === "end"
         ) {
-          const gCwidth = table
-            .getAllColumns()
-            .map((column: { getSize: () => any }) => {
-              return column.getSize() ? column.getSize() : null;
-            });
-          setGrids(gCwidth);
-          table.setColumnSizing((old: any) => ({
-            ...old,
-            ...newColumnSizing,
-          }));
+          const gColumns =  table
+          .getAllColumns()
+        
+          const gCwidth = gColumns.map((column: { getSize: () => any }, index: any) => {
+            if(column?.id === 'select'){
+              return 50
+            }
+            return column.getSize() && gridWidths[index] ? column.getSize() : null
+          })
+   
+          setGrids(gCwidth)
+        table.setColumnSizing((old: any) => ({
+          ...old,
+          ...newColumnSizing,
+        }))
         }
       };
 

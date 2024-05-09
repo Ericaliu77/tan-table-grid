@@ -51,9 +51,10 @@ const TableComponent = ({
   rowSelection,
   rowKey = "index",
 }: TableComponentProps) => {
-  const { handleResize, gridWidths, getColumnOffset } = useColumns({
+  const { handleResize, gridWidths, getColumnOffset, } = useColumns({
     columns,
-    rowSelection,
+    // rowSelection,
+    onRowSelection: !!rowSelection
   });
 
   const table = useRef<any>();
@@ -95,9 +96,17 @@ const TableComponent = ({
                     right: getColumnOffset(cItem.dataIndex),
                     zIndex: 99,
                   }),
+                 
                 }}
               >
-                {cItem.title}
+                {/* <div style={ {
+                   overflow:'hidden',
+                   textOverflow:'ellipsis',
+                   whiteSpace:'nowrap'
+                }}> */}
+                  {cItem.title}
+                {/* </div> */}
+                
                 {enableColumnResizing && 
                    cItem.enableResizing != false &&
                    cItem.width &&
@@ -107,10 +116,10 @@ const TableComponent = ({
                     {...{
                       onDoubleClick: () => info.header.column.resetSize(),
                       onMouseDown: throttle(handleResize(info), 200),
-                      onTouchStart: throttle(
-                        info.header.getResizeHandler(),
-                        200
-                      ),
+                      // onTouchStart: throttle(
+                      //   info.header.getResizeHandler(),
+                      //   200
+                      // ),
                       className: `resizer ${
                         info.table.options.columnResizeDirection
                       } ${
@@ -209,7 +218,7 @@ const TableComponent = ({
         <TableContentContainer
           style={{
             gridTemplateColumns: (rowSelection
-              ? [50, ...gridWidths]
+              ? [ ...gridWidths]
               : gridWidths
             )
               .map((width: string | number | null) =>

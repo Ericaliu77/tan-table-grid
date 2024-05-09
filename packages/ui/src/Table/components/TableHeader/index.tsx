@@ -1,9 +1,6 @@
 import { Table, flexRender } from "@tanstack/react-table";
 import { TableHeaderContainer } from "../../style";
-import { Key } from "react";
-import { ColumnDataType } from "../../Table";
-import React from "react";
-import {throttle} from 'lodash'
+import { ColumnDataType } from "../../interface";
 
 interface tableHeaderProps {
   table: Table<any>;
