@@ -389,7 +389,8 @@ const TableDemo = (props: any) => {
     {
       title: "名字",
       dataIndex: "lastName",
-      width: 400,
+      width: 100,
+      ellipsis:true,
     },
     {
       title: "年龄",
@@ -398,7 +399,7 @@ const TableDemo = (props: any) => {
       fixed: "left",
     },
     {
-      title: "状态",
+      title: "状态statusstatusstatus",
       dataIndex: "status",
       width: 150,
     },
@@ -511,7 +512,7 @@ const TableDemo = (props: any) => {
             onChange: onPageChange,
             onShowSizeChange: onPageSizeChange,
           }}
-        />{" "}
+        />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { isTouchStartEvent } from "../utils";
 
 const defaultRowColumn = {
@@ -61,7 +61,7 @@ const useColumns = ({ columns,onRowSelection }: any) => {
     handleCalGridColumns();
   }, [columns]);
 
-  function handleResize(info: any) {
+  const handleResize = useCallback((info: any) =>{
     const { header, table } = info;
     const column = table.getColumn(header.column.id);
     const canResize = column?.getCanResize();
@@ -249,8 +249,8 @@ const useColumns = ({ columns,onRowSelection }: any) => {
         columnSizingStart,
         isResizingColumn: column.id,
       }));
-    };
-  }
+    }
+  },[])
   return {
     handleResize,
     gridWidths,

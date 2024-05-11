@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useMemo, useRef } from "react";
+import { ReactNode, useCallback, useMemo, useRef } from "react";
 
 import {
   createColumnHelper,
@@ -14,15 +14,16 @@ import { TableCellContainer, TableContentContainer } from "../../style";
 import styled from "@emotion/styled";
 import { ColumnDataType, ColumnSizeType } from "../../interface";
 import "./index.css";
-import { throttle } from "lodash";
 import useColumns from "../../hooks/useColumns";
 import useSelection from "../../hooks/useSelection";
-import {getRowKey} from '../../utils'
+import { getRowKey } from "../../utils";
+import usePopup from "../../hooks/usePopup";
 const defaultColumnSize: ColumnSizeType = {
   size: 150,
   minSize: 50,
   maxSize: Number.MAX_SAFE_INTEGER,
 };
+
 interface TableComponentProps {
   children?: ReactNode;
   columns?: ColumnDataType[];
@@ -33,13 +34,18 @@ interface TableComponentProps {
   rowKey?: string;
   rowSelection?: {
     selectedRowKeys?: string[] | number[];
-    checkDisabled?:(record)=>boolean;
+    checkDisabled?: (record) => boolean;
     onChange: (selectedRowKeys?: any, info?: any) => void;
   };
 }
 const TableContainer = styled.div({
   position: "relative",
   ".tan-table-header-cell": {},
+});
+const TableCellEllipsis = styled.div({
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 });
 
 const TableComponent = ({
@@ -51,11 +57,14 @@ const TableComponent = ({
   rowSelection,
   rowKey = "index",
 }: TableComponentProps) => {
-  const { handleResize, gridWidths, getColumnOffset, } = useColumns({
+ 
+  const { handleResize, gridWidths, getColumnOffset } = useColumns({
     columns,
     // rowSelection,
-    onRowSelection: !!rowSelection
+    onRowSelection: !!rowSelection,
   });
+
+  const {triggerTooltipVisible} = usePopup({});
 
   const table = useRef<any>();
   const { rowSelectionAccessor } = useSelection({
@@ -74,7 +83,11 @@ const TableComponent = ({
       return columnHelper.accessor(cItem.dataIndex, {
         size: cItem.width || undefined,
         enableResizing:
-        cItem.width == null ? false : cItem.enableResizing ? cItem.enableResizing : true,
+          cItem.width == null
+            ? false
+            : cItem.enableResizing
+              ? cItem.enableResizing
+              : true,
         header: (info) => {
           return (
             <>
@@ -96,38 +109,28 @@ const TableComponent = ({
                     right: getColumnOffset(cItem.dataIndex),
                     zIndex: 99,
                   }),
-                 
                 }}
               >
-                {/* <div style={ {
-                   overflow:'hidden',
-                   textOverflow:'ellipsis',
-                   whiteSpace:'nowrap'
-                }}> */}
-                  {cItem.title}
-                {/* </div> */}
-                
-                {enableColumnResizing && 
-                   cItem.enableResizing != false &&
-                   cItem.width &&
-                   cIndex != columns.length - 1 && (
-                  <div
-                    style={{ zIndex: 199 }}
-                    {...{
-                      onDoubleClick: () => info.header.column.resetSize(),
-                      onMouseDown: throttle(handleResize(info), 200),
-                      // onTouchStart: throttle(
-                      //   info.header.getResizeHandler(),
-                      //   200
-                      // ),
-                      className: `resizer ${
-                        info.table.options.columnResizeDirection
-                      } ${
-                        info.header.column.getIsResizing() ? "isResizing" : ""
-                      }`,
-                    }}
-                  />
-                )}
+                <TableCellEllipsis>{cItem.title}</TableCellEllipsis>
+
+                {enableColumnResizing &&
+                  cItem.enableResizing != false &&
+                  cItem.width &&
+                  cIndex != columns.length - 1 && (
+                    <div
+                      style={{ zIndex: 199 }}
+                      {...{
+                        onDoubleClick: () => info.header.column.resetSize(),
+                        onMouseDown: handleResize(info),
+                        onTouchStart: handleResize(info),
+                        className: `resizer ${
+                          info.table.options.columnResizeDirection
+                        } ${
+                          info.header.column.getIsResizing() ? "isResizing" : ""
+                        }`,
+                      }}
+                    />
+                  )}
               </TableCellContainer>
             </>
           );
@@ -135,12 +138,12 @@ const TableComponent = ({
         cell: (info) => {
           return (
             <TableCellContainer
-            key={
-              getRowKey(rowKey, {
-                index: info.cell.id,
-                ...info.row.original,
-              }) || info.cell.id
-            }
+              key={
+                getRowKey(rowKey, {
+                  index: info.cell.id,
+                  ...info.row.original,
+                }) || info.cell.id
+              }
               style={{
                 ...sx,
                 ...(cItem.fixed === "left" && {
@@ -156,13 +159,23 @@ const TableComponent = ({
                 }),
               }}
             >
-              {cItem.render
-                ? cItem.render(
-                    info.row.original,
-                    info.getValue(),
-                    info.row.index
-                  )
-                : info.getValue()}
+              {cItem.render ? (
+                cItem.render(info.row.original, info.getValue(), info.row.index)
+              ) : cItem.ellipsis ? (
+                <TableCellEllipsis
+
+                  onMouseEnter={(e)=>{
+                    triggerTooltipVisible(true,e,info.getValue())
+                  }}
+                  onMouseLeave={(e)=>{
+                    triggerTooltipVisible(false,e)
+                  }}
+                >
+                  {info.getValue()}
+                </TableCellEllipsis>
+              ) : (
+                <div>{info.getValue()}</div>
+              )}
             </TableCellContainer>
           );
         },
@@ -170,10 +183,7 @@ const TableComponent = ({
       });
     });
     if (rowSelection) {
-      values?.unshift(
-        rowSelectionAccessor
-       
-      );
+      values?.unshift(rowSelectionAccessor);
     }
     return values;
   }, [columns, enableColumnResizing]);
@@ -191,50 +201,69 @@ const TableComponent = ({
     },
   });
   return (
-    <div
-      className="tan-table-container"
-      id="tan-table-container"
-      style={{
-        overflow: "auto",
-        width: "100%",
-        borderRadius: "6px 6px 0px 0px",
-        height: "100%",
-      }}
-    >
-      <TableContainer
+    <>
+      <div
+        id="table_tooltip"
         style={{
-          minWidth:
-            gridWidths?.reduce(
-              (total: any, width: any) => (width ? total + width : total + 50),
-              0
-            ) || 0,
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "auto",
+          height: "auto",
+          padding:'10px',
+          backgroundColor: "#000000",
+          display: "none",
+          borderRadius:'10px',
+          zIndex: 9999,
+          color:'white',
+          transform: "translateX(-50%)",
         }}
       >
-        <TableHeader
-          table={table.current}
-          columns={columns}
-          fixedHeader={fixedHeader}
-        />
-        <TableContentContainer
+        
+      </div>
+      <div
+        className="tan-table-container"
+        id="tan-table-container"
+        style={{
+          overflow: "auto",
+          width: "100%",
+          borderRadius: "6px 6px 0px 0px",
+          height: "100%",
+        }}
+      >
+        <TableContainer
           style={{
-            gridTemplateColumns: (rowSelection
-              ? [ ...gridWidths]
-              : gridWidths
-            )
-              .map((width: string | number | null) =>
-                width ? width + "px" : "auto"
-              )
-              .join(" "), // gridColumns,
+            minWidth:
+              gridWidths?.reduce(
+                (total: any, width: any) =>
+                  width ? total + width : total + 50,
+                0
+              ) || 0,
           }}
         >
-          <TableBody
+          <TableHeader
             table={table.current}
-            data={data}
-            rowSelection={rowSelection}
+            columns={columns}
+            fixedHeader={fixedHeader}
           />
-        </TableContentContainer>
-      </TableContainer>
-    </div>
+          <TableContentContainer
+            style={{
+              gridTemplateColumns: (rowSelection ? [...gridWidths] : gridWidths)
+                .map((width: string | number | null) =>
+                  width ? width + "px" : "auto"
+                )
+                .join(" "), // gridColumns,
+            }}
+          >
+            <TableBody
+              table={table.current}
+              data={data}
+              rowSelection={rowSelection}
+            />
+          </TableContentContainer>
+        </TableContainer>
+      </div>
+    </>
   );
 };
 
